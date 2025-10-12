@@ -53,15 +53,7 @@ export default function LoginForm({ role, onLogin, onBack }: LoginFormProps) {
       return;
     }
 
-    if (username === config.demoCredentials.username && password === config.demoCredentials.password) {
-      onLogin({ username, password });
-    } else {
-      toast({
-        title: "Invalid Credentials",
-        description: "Please check your username and password",
-        variant: "destructive"
-      });
-    }
+    onLogin({ username, password });
   };
 
   return (

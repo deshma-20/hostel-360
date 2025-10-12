@@ -1,37 +1,72 @@
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { Card } from "@/components/ui/card";
-import { Users, Bed, MessageSquare, Utensils } from "lucide-react";
+import { Users, Bed, MessageSquare, Utensils, Bell } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 
-const complaintData = [
-  { name: "Mon", count: 12 },
-  { name: "Tue", count: 19 },
-  { name: "Wed", count: 8 },
-  { name: "Thu", count: 15 },
-  { name: "Fri", count: 22 },
-  { name: "Sat", count: 10 },
-  { name: "Sun", count: 6 },
-];
-
-const occupancyData = [
-  { name: "Occupied", value: 156, color: "hsl(var(--primary))" },
-  { name: "Vacant", value: 44, color: "hsl(var(--muted))" },
-];
-
-const messRatings = [
-  { name: "5 Star", value: 45, color: "hsl(140 70% 45%)" },
-  { name: "4 Star", value: 30, color: "hsl(var(--chart-3))" },
-  { name: "3 Star", value: 15, color: "hsl(var(--warning))" },
-  { name: "2 Star", value: 7, color: "hsl(var(--chart-4))" },
-  { name: "1 Star", value: 3, color: "hsl(var(--destructive))" },
-];
+interface Analytics {
+  complaints: {
+    total: number;
+    pending: number;
+    resolved: number;
+    byCategory: Record<string, number>;
+  };
+  rooms: {
+    total: number;
+    available: number;
+    full: number;
+    maintenance: number;
+    occupancyRate: string;
+  };
+  mess: {
+    totalFeedback: number;
+    avgQuality: string;
+    avgTaste: string;
+    wastageReports: number;
+  };
+  sos: {
+    total: number;
+    active: number;
+    resolved: number;
+  };
+  visitors: {
+    total: number;
+    active: number;
+    checkedOut: number;
+  };
+}
 
 export default function AdminDashboard() {
+  const { data: analytics, isLoading } = useQuery<Analytics>({
+    queryKey: ["/api/analytics"],
+  });
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <p className="text-muted-foreground">Loading analytics...</p>
+      </div>
+    );
+  }
+
+  if (!analytics) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <p className="text-muted-foreground">No data available</p>
+      </div>
+    );
+  }
+
   const stats = [
-    { icon: Users, label: "Total Students", value: "342", color: "text-primary" },
-    { icon: Bed, label: "Rooms Occupied", value: "156/200", color: "text-chart-3" },
-    { icon: MessageSquare, label: "Active Complaints", value: "23", color: "text-warning" },
-    { icon: Utensils, label: "Avg. Mess Rating", value: "4.2", color: "text-chart-2" },
+    { icon: Bed, label: "Room Occupancy", value: `${analytics.rooms.occupancyRate}%`, color: "text-chart-3" },
+    { icon: MessageSquare, label: "Active Complaints", value: analytics.complaints.pending.toString(), color: "text-warning" },
+    { icon: Utensils, label: "Avg. Mess Quality", value: analytics.mess.avgQuality, color: "text-chart-2" },
+    { icon: Bell, label: "Active SOS", value: analytics.sos.active.toString(), color: "text-destructive" },
   ];
+
+  const complaintData = Object.entries(analytics.complaints.byCategory).map(([name, count]) => ({
+    name: name.charAt(0).toUpperCase() + name.slice(1),
+    count,
+  }));
 
   return (
     <div className="min-h-screen bg-background pb-20">
@@ -61,44 +96,13 @@ export default function AdminDashboard() {
 
         <Card className="overflow-visible">
           <div className="p-4">
-            <h3 className="font-semibold mb-4">Complaints This Week</h3>
-            <ResponsiveContainer width="100%" height={200}>
-              <BarChart data={complaintData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis dataKey="name" tick={{ fill: 'hsl(var(--muted-foreground))' }} />
-                <YAxis tick={{ fill: 'hsl(var(--muted-foreground))' }} />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: 'hsl(var(--card))', 
-                    border: '1px solid hsl(var(--border))',
-                    borderRadius: '6px'
-                  }} 
-                />
-                <Bar dataKey="count" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </Card>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Card className="overflow-visible">
-            <div className="p-4">
-              <h3 className="font-semibold mb-4">Room Occupancy</h3>
+            <h3 className="font-semibold mb-4">Complaints by Category</h3>
+            {complaintData.length > 0 ? (
               <ResponsiveContainer width="100%" height={200}>
-                <PieChart>
-                  <Pie
-                    data={occupancyData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={50}
-                    outerRadius={80}
-                    paddingAngle={5}
-                    dataKey="value"
-                  >
-                    {occupancyData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
+                <BarChart data={complaintData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                  <XAxis dataKey="name" tick={{ fill: 'hsl(var(--muted-foreground))' }} />
+                  <YAxis tick={{ fill: 'hsl(var(--muted-foreground))' }} />
                   <Tooltip 
                     contentStyle={{ 
                       backgroundColor: 'hsl(var(--card))', 
@@ -106,43 +110,86 @@ export default function AdminDashboard() {
                       borderRadius: '6px'
                     }} 
                   />
-                </PieChart>
+                  <Bar dataKey="count" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                </BarChart>
               </ResponsiveContainer>
-              <div className="flex justify-center gap-4 mt-2 text-sm">
-                {occupancyData.map((entry) => (
-                  <div key={entry.name} className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: entry.color }} />
-                    <span className="text-muted-foreground">{entry.name}: {entry.value}</span>
-                  </div>
-                ))}
+            ) : (
+              <div className="h-48 flex items-center justify-center">
+                <p className="text-muted-foreground">No complaints data available</p>
+              </div>
+            )}
+          </div>
+        </Card>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Card className="overflow-visible">
+            <div className="p-4">
+              <h3 className="font-semibold mb-4">Room Status</h3>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">Total Rooms</span>
+                  <span className="font-semibold">{analytics.rooms.total}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">Available</span>
+                  <span className="font-semibold text-chart-3">{analytics.rooms.available}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">Full</span>
+                  <span className="font-semibold">{analytics.rooms.full}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">Maintenance</span>
+                  <span className="font-semibold text-warning">{analytics.rooms.maintenance}</span>
+                </div>
               </div>
             </div>
           </Card>
 
           <Card className="overflow-visible">
             <div className="p-4">
-              <h3 className="font-semibold mb-4">Mess Feedback Distribution</h3>
-              <div className="space-y-2">
-                {messRatings.map((rating) => (
-                  <div key={rating.name} className="flex items-center gap-3">
-                    <span className="text-sm text-muted-foreground w-16">{rating.name}</span>
-                    <div className="flex-1 bg-muted rounded-full h-6 overflow-hidden">
-                      <div 
-                        className="h-full flex items-center justify-end pr-2 text-xs text-white font-medium transition-all"
-                        style={{ 
-                          width: `${rating.value}%`, 
-                          backgroundColor: rating.color 
-                        }}
-                      >
-                        {rating.value}%
-                      </div>
-                    </div>
-                  </div>
-                ))}
+              <h3 className="font-semibold mb-4">Mess Feedback</h3>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">Total Feedback</span>
+                  <span className="font-semibold">{analytics.mess.totalFeedback}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">Avg Quality</span>
+                  <span className="font-semibold text-chart-3">{analytics.mess.avgQuality}/5</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">Avg Taste</span>
+                  <span className="font-semibold text-chart-3">{analytics.mess.avgTaste}/5</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">Wastage Reports</span>
+                  <span className="font-semibold text-destructive">{analytics.mess.wastageReports}</span>
+                </div>
               </div>
             </div>
           </Card>
         </div>
+
+        <Card className="overflow-visible">
+          <div className="p-4">
+            <h3 className="font-semibold mb-4">Visitor Management</h3>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">Total Visitors</span>
+                <span className="font-semibold">{analytics.visitors.total}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">Currently Active</span>
+                <span className="font-semibold text-chart-3">{analytics.visitors.active}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">Checked Out</span>
+                <span className="font-semibold">{analytics.visitors.checkedOut}</span>
+              </div>
+            </div>
+          </div>
+        </Card>
       </div>
     </div>
   );

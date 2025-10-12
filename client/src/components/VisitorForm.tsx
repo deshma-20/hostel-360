@@ -3,7 +3,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { X, User, Phone, FileText } from "lucide-react";
+import { X, User, Phone, FileText, Home, IdCard } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface VisitorFormProps {
@@ -15,12 +15,15 @@ export default function VisitorForm({ onClose, onSubmit }: VisitorFormProps) {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [purpose, setPurpose] = useState("");
+  const [studentName, setStudentName] = useState("");
+  const [roomNumber, setRoomNumber] = useState("");
   const { toast } = useToast();
+  const userId = localStorage.getItem('userId') || '';
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!name || !phone || !purpose) {
+    if (!name || !phone || !purpose || !studentName || !roomNumber) {
       toast({
         title: "Error",
         description: "Please fill all fields",
@@ -29,15 +32,13 @@ export default function VisitorForm({ onClose, onSubmit }: VisitorFormProps) {
       return;
     }
 
-    const now = new Date();
-    const checkInTime = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-
     onSubmit({
       name,
       phone,
       purpose,
-      checkIn: checkInTime,
-      status: "active"
+      studentId: userId,
+      studentName,
+      roomNumber,
     });
 
     toast({
@@ -50,7 +51,7 @@ export default function VisitorForm({ onClose, onSubmit }: VisitorFormProps) {
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-      <Card className="w-full max-w-md overflow-visible">
+      <Card className="w-full max-w-md overflow-visible max-h-[90vh] overflow-y-auto">
         <div className="p-6">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-xl font-bold">Register Visitor</h2>
@@ -106,6 +107,36 @@ export default function VisitorForm({ onClose, onSubmit }: VisitorFormProps) {
                   value={purpose}
                   onChange={(e) => setPurpose(e.target.value)}
                   data-testid="input-visitor-purpose"
+                  className="pl-10"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="studentName">Student Name</Label>
+              <div className="relative">
+                <IdCard className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                <Input
+                  id="studentName"
+                  placeholder="Name of student to visit"
+                  value={studentName}
+                  onChange={(e) => setStudentName(e.target.value)}
+                  data-testid="input-student-name"
+                  className="pl-10"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="roomNumber">Room Number</Label>
+              <div className="relative">
+                <Home className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                <Input
+                  id="roomNumber"
+                  placeholder="e.g., 201"
+                  value={roomNumber}
+                  onChange={(e) => setRoomNumber(e.target.value)}
+                  data-testid="input-room-number"
                   className="pl-10"
                 />
               </div>

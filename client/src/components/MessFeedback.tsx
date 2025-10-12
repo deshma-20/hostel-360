@@ -2,21 +2,61 @@ import { Star, ThumbsUp, ThumbsDown, Trash2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
+import { useMutation } from "@tanstack/react-query";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 const mealTypes = ["Breakfast", "Lunch", "Dinner"];
 
 export default function MessFeedback() {
   const [selectedMeal, setSelectedMeal] = useState("Breakfast");
-  const [rating, setRating] = useState(0);
+  const [qualityRating, setQualityRating] = useState(0);
   const [hoveredRating, setHoveredRating] = useState(0);
-  const [taste, setTaste] = useState<"good" | "bad" | null>(null);
-  const [wastage, setWastage] = useState<"yes" | "no" | null>(null);
+  const [tasteRating, setTasteRating] = useState<number | null>(null);
+  const [wastage, setWastage] = useState<boolean | null>(null);
+  const { toast } = useToast();
+  const userId = localStorage.getItem('userId') || '';
+
+  const submitFeedbackMutation = useMutation({
+    mutationFn: async (data: any) => {
+      return await apiRequest("POST", "/api/mess-feedback", data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/mess-feedback"] });
+      toast({
+        title: "Success",
+        description: "Feedback submitted successfully",
+      });
+      setQualityRating(0);
+      setTasteRating(null);
+      setWastage(null);
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to submit feedback",
+        variant: "destructive",
+      });
+    },
+  });
 
   const handleSubmit = () => {
-    console.log('Feedback submitted:', { selectedMeal, rating, taste, wastage });
-    setRating(0);
-    setTaste(null);
-    setWastage(null);
+    if (!qualityRating || tasteRating === null || wastage === null) {
+      toast({
+        title: "Error",
+        description: "Please complete all fields",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    submitFeedbackMutation.mutate({
+      userId,
+      meal: selectedMeal,
+      qualityRating,
+      tasteRating,
+      wastage,
+    });
   };
 
   return (
@@ -55,7 +95,7 @@ export default function MessFeedback() {
               {[1, 2, 3, 4, 5].map((star) => (
                 <button
                   key={star}
-                  onClick={() => setRating(star)}
+                  onClick={() => setQualityRating(star)}
                   onMouseEnter={() => setHoveredRating(star)}
                   onMouseLeave={() => setHoveredRating(0)}
                   data-testid={`button-star-${star}`}
@@ -63,7 +103,7 @@ export default function MessFeedback() {
                 >
                   <Star
                     className={`w-10 h-10 transition-colors ${
-                      star <= (hoveredRating || rating)
+                      star <= (hoveredRating || qualityRating)
                         ? "fill-warning text-warning"
                         : "text-muted-foreground"
                     }`}
@@ -79,8 +119,8 @@ export default function MessFeedback() {
             <h3 className="font-semibold mb-3">Taste</h3>
             <div className="flex gap-3">
               <Button
-                onClick={() => setTaste("good")}
-                variant={taste === "good" ? "default" : "outline"}
+                onClick={() => setTasteRating(5)}
+                variant={tasteRating === 5 ? "default" : "outline"}
                 data-testid="button-taste-good"
                 className="flex-1 gap-2"
               >
@@ -88,8 +128,8 @@ export default function MessFeedback() {
                 Good
               </Button>
               <Button
-                onClick={() => setTaste("bad")}
-                variant={taste === "bad" ? "destructive" : "outline"}
+                onClick={() => setTasteRating(1)}
+                variant={tasteRating === 1 ? "destructive" : "outline"}
                 data-testid="button-taste-bad"
                 className="flex-1 gap-2"
               >
@@ -105,16 +145,16 @@ export default function MessFeedback() {
             <h3 className="font-semibold mb-3">Food Wastage?</h3>
             <div className="flex gap-3">
               <Button
-                onClick={() => setWastage("no")}
-                variant={wastage === "no" ? "default" : "outline"}
+                onClick={() => setWastage(false)}
+                variant={wastage === false ? "default" : "outline"}
                 data-testid="button-wastage-no"
                 className="flex-1"
               >
                 No
               </Button>
               <Button
-                onClick={() => setWastage("yes")}
-                variant={wastage === "yes" ? "destructive" : "outline"}
+                onClick={() => setWastage(true)}
+                variant={wastage === true ? "destructive" : "outline"}
                 data-testid="button-wastage-yes"
                 className="flex-1 gap-2"
               >
@@ -130,8 +170,9 @@ export default function MessFeedback() {
           data-testid="button-submit-feedback"
           className="w-full"
           size="lg"
+          disabled={submitFeedbackMutation.isPending}
         >
-          Submit Feedback
+          {submitFeedbackMutation.isPending ? "Submitting..." : "Submit Feedback"}
         </Button>
       </div>
     </div>
