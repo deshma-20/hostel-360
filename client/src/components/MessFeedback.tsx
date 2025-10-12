@@ -21,9 +21,10 @@ export default function MessFeedback() {
 
   return (
     <div className="min-h-screen bg-background pb-20">
-      <header className="bg-primary text-primary-foreground p-4 sticky top-0 z-30">
+      <header className="bg-gradient-to-r from-primary to-accent text-primary-foreground p-4 sticky top-0 z-30 shadow-lg">
         <div className="max-w-md mx-auto">
           <h1 className="text-xl font-bold">Mess Feedback</h1>
+          <p className="text-sm opacity-90">Rate your meals</p>
         </div>
       </header>
 

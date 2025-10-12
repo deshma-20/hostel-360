@@ -2,6 +2,8 @@ import { Plus, User, Phone, Clock, CheckCircle } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { useState } from "react";
+import VisitorForm from "./VisitorForm";
 
 interface Visitor {
   id: string;
@@ -20,11 +22,34 @@ const mockVisitors: Visitor[] = [
 ];
 
 export default function VisitorManagement() {
+  const [visitors, setVisitors] = useState(mockVisitors);
+  const [showForm, setShowForm] = useState(false);
+
+  const handleAddVisitor = (newVisitor: any) => {
+    const visitor = {
+      id: String(visitors.length + 1),
+      ...newVisitor
+    };
+    setVisitors([visitor, ...visitors]);
+  };
+
+  const handleCheckout = (visitorId: string) => {
+    const now = new Date();
+    const checkOutTime = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+    
+    setVisitors(visitors.map(v => 
+      v.id === visitorId 
+        ? { ...v, checkOut: checkOutTime, status: "completed" as const }
+        : v
+    ));
+  };
+
   return (
     <div className="min-h-screen bg-background pb-20">
-      <header className="bg-primary text-primary-foreground p-4 sticky top-0 z-30">
+      <header className="bg-gradient-to-r from-primary to-accent text-primary-foreground p-4 sticky top-0 z-30 shadow-lg">
         <div className="max-w-md mx-auto">
           <h1 className="text-xl font-bold">Visitor Management</h1>
+          <p className="text-sm opacity-90">Register & track visitors</p>
         </div>
       </header>
 
@@ -32,14 +57,21 @@ export default function VisitorManagement() {
         <Button
           data-testid="button-new-visitor"
           className="w-full mb-4 gap-2"
-          onClick={() => console.log('Add new visitor')}
+          onClick={() => setShowForm(true)}
         >
           <Plus className="w-5 h-5" />
           Register New Visitor
         </Button>
 
+        {showForm && (
+          <VisitorForm
+            onClose={() => setShowForm(false)}
+            onSubmit={handleAddVisitor}
+          />
+        )}
+
         <div className="space-y-3">
-          {mockVisitors.map((visitor) => (
+          {visitors.map((visitor) => (
             <Card
               key={visitor.id}
               data-testid={`visitor-card-${visitor.id}`}
@@ -78,7 +110,7 @@ export default function VisitorManagement() {
 
                 {visitor.status === "active" && (
                   <Button
-                    onClick={() => console.log('Check out visitor', visitor.id)}
+                    onClick={() => handleCheckout(visitor.id)}
                     variant="outline"
                     size="sm"
                     className="w-full mt-3 gap-2"

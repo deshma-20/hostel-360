@@ -20,13 +20,13 @@ interface RoleSelectorProps {
 
 export default function RoleSelector({ onRoleSelect }: RoleSelectorProps) {
   return (
-    <div className="min-h-screen bg-gradient-to-b from-primary to-primary/80 flex flex-col items-center justify-center p-6">
+    <div className="min-h-screen bg-gradient-to-br from-primary via-accent to-primary/80 flex flex-col items-center justify-center p-6">
       <div className="text-center mb-12">
-        <div className="w-24 h-24 mx-auto mb-4 bg-white/20 rounded-full flex items-center justify-center">
-          <Shield className="w-12 h-12 text-white" />
+        <div className="w-28 h-28 mx-auto mb-6 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
+          <Shield className="w-14 h-14 text-white" />
         </div>
-        <h1 className="text-3xl font-bold text-white mb-2">HOSTEL 360°</h1>
-        <p className="text-white/90 text-sm">Select Your Role</p>
+        <h1 className="text-4xl font-bold text-white mb-2">HOSTEL 360°</h1>
+        <p className="text-white/90">Select Your Role to Continue</p>
       </div>
 
       <div className="w-full max-w-md space-y-4">

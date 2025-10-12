@@ -9,6 +9,7 @@ interface DashboardProps {
 
 export default function Dashboard({ userRole = "student" }: DashboardProps) {
   const [, navigate] = useLocation();
+  const username = localStorage.getItem('username') || 'User';
 
   const studentFeatures = [
     { icon: Bell, label: "SOS Emergency", color: "text-destructive", path: "/sos", testId: "feature-sos" },
@@ -32,15 +33,22 @@ export default function Dashboard({ userRole = "student" }: DashboardProps) {
 
   return (
     <div className="min-h-screen bg-background pb-20">
-      <header className="bg-primary text-primary-foreground p-4 sticky top-0 z-30">
+      <header className="bg-gradient-to-r from-primary to-accent text-primary-foreground p-4 sticky top-0 z-30 shadow-lg">
         <div className="flex items-center justify-between max-w-md mx-auto">
           <div>
             <h1 className="text-xl font-bold">HOSTEL 360°</h1>
-            <p className="text-sm opacity-90 capitalize">{userRole} Portal</p>
+            <p className="text-sm opacity-90">Welcome, {username}</p>
           </div>
-          <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
+          <button
+            onClick={() => {
+              localStorage.clear();
+              navigate('/');
+            }}
+            data-testid="button-logout"
+            className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center hover-elevate active-elevate-2"
+          >
             <User className="w-6 h-6" />
-          </div>
+          </button>
         </div>
       </header>
 

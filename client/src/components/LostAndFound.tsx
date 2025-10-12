@@ -34,9 +34,10 @@ export default function LostAndFound() {
 
   return (
     <div className="min-h-screen bg-background pb-20">
-      <header className="bg-primary text-primary-foreground p-4 sticky top-0 z-30">
+      <header className="bg-gradient-to-r from-primary to-accent text-primary-foreground p-4 sticky top-0 z-30 shadow-lg">
         <div className="max-w-md mx-auto">
           <h1 className="text-xl font-bold">Lost & Found</h1>
+          <p className="text-sm opacity-90">Report and find items</p>
         </div>
       </header>
 

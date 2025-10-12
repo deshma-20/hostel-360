@@ -3,6 +3,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
+import ComplaintForm from "./ComplaintForm";
 
 interface Complaint {
   id: string;
@@ -33,13 +34,23 @@ const statusConfig = {
 };
 
 export default function Complaints() {
-  const [complaints] = useState(mockComplaints);
+  const [complaints, setComplaints] = useState(mockComplaints);
+  const [showForm, setShowForm] = useState(false);
+
+  const handleSubmitComplaint = (newComplaint: any) => {
+    const complaint = {
+      id: String(complaints.length + 1),
+      ...newComplaint
+    };
+    setComplaints([complaint, ...complaints]);
+  };
 
   return (
     <div className="min-h-screen bg-background pb-20">
-      <header className="bg-primary text-primary-foreground p-4 sticky top-0 z-30">
+      <header className="bg-gradient-to-r from-primary to-accent text-primary-foreground p-4 sticky top-0 z-30 shadow-lg">
         <div className="max-w-md mx-auto">
           <h1 className="text-xl font-bold">Complaints</h1>
+          <p className="text-sm opacity-90">Track and submit issues</p>
         </div>
       </header>
 
@@ -47,11 +58,18 @@ export default function Complaints() {
         <Button
           data-testid="button-new-complaint"
           className="w-full mb-4 gap-2"
-          onClick={() => console.log('New complaint')}
+          onClick={() => setShowForm(true)}
         >
           <Plus className="w-5 h-5" />
           Submit New Complaint
         </Button>
+
+        {showForm && (
+          <ComplaintForm
+            onClose={() => setShowForm(false)}
+            onSubmit={handleSubmitComplaint}
+          />
+        )}
 
         <div className="space-y-3">
           {complaints.map((complaint) => {
