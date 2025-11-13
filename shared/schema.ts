@@ -6,6 +6,7 @@ import { z } from "zod";
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   username: text("username").notNull().unique(),
+  email: text("email").notNull().unique(),
   password: text("password").notNull(),
   role: text("role").notNull().default("student"),
   name: text("name"),
@@ -28,6 +29,8 @@ export const complaints = pgTable("complaints", {
   description: text("description").notNull(),
   status: text("status").notNull().default("pending"),
   priority: text("priority").notNull().default("medium"),
+  roomNumber: text("room_number"),
+  attachmentUrl: text("attachment_url"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   resolvedAt: timestamp("resolved_at"),
 });
@@ -66,6 +69,7 @@ export const lostFound = pgTable("lost_found", {
   reportedBy: varchar("reported_by").notNull(),
   reporterName: text("reporter_name").notNull(),
   contactInfo: text("contact_info").notNull(),
+  attachmentUrl: text("attachment_url"),
   status: text("status").notNull().default("active"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   resolvedAt: timestamp("resolved_at"),
@@ -90,10 +94,21 @@ export const insertRoomSchema = createInsertSchema(rooms).omit({
   id: true,
 });
 
-export const insertComplaintSchema = createInsertSchema(complaints).omit({
-  id: true,
-  createdAt: true,
-  resolvedAt: true,
+export const insertComplaintSchema = z.object({
+  userId: z.string(),
+  category: z.string(),
+  location: z.string(),
+  description: z.string(),
+  status: z.enum(["pending", "in-progress", "resolved", "rejected"]).optional(),
+  priority: z.enum(["low", "medium", "high"]).optional(),
+  roomNumber: z.string().optional(),
+  attachmentUrl: z.string().url().optional(),
+});
+
+export const complaintSchema = insertComplaintSchema.extend({
+  id: z.string(),
+  createdAt: z.date(),
+  resolvedAt: z.date().nullable(),
 });
 
 export const insertMessFeedbackSchema = createInsertSchema(messFeedback).omit({
@@ -107,7 +122,9 @@ export const insertVisitorSchema = createInsertSchema(visitors).omit({
   checkOut: true,
 });
 
-export const insertLostFoundSchema = createInsertSchema(lostFound).omit({
+export const insertLostFoundSchema = createInsertSchema(lostFound, {
+  attachmentUrl: z.string().url().optional(),
+}).omit({
   id: true,
   createdAt: true,
   resolvedAt: true,

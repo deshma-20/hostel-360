@@ -2,7 +2,7 @@ import { Briefcase, Shield, User } from "lucide-react";
 import { Card } from "@/components/ui/card";
 
 interface Role {
-  id: "student" | "staff" | "warden";
+  id: "student" | "warden";
   name: string;
   icon: React.ComponentType<{ className?: string }>;
   color: string;
@@ -10,7 +10,6 @@ interface Role {
 
 const roles: Role[] = [
   { id: "student", name: "Student", icon: User, color: "bg-primary" },
-  { id: "staff", name: "Staff", icon: Briefcase, color: "bg-chart-2" },
   { id: "warden", name: "Warden", icon: Shield, color: "bg-chart-3" },
 ];
 

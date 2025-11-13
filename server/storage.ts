@@ -20,6 +20,7 @@ export interface IStorage {
   // User methods
   getUser(id: string): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
+  getUserByEmail(email: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   
   // Room methods
@@ -34,6 +35,7 @@ export interface IStorage {
   getComplaint(id: string): Promise<Complaint | undefined>;
   createComplaint(complaint: InsertComplaint): Promise<Complaint>;
   updateComplaint(id: string, complaint: Partial<InsertComplaint>): Promise<Complaint | undefined>;
+  deleteComplaint(id: string): Promise<Complaint | undefined>;
   
   // Mess Feedback methods
   getAllMessFeedback(): Promise<MessFeedback[]>;
@@ -52,8 +54,9 @@ export interface IStorage {
   getActiveLostFound(): Promise<LostFound[]>;
   getLostFoundByType(type: string): Promise<LostFound[]>;
   getLostFound(id: string): Promise<LostFound | undefined>;
-  createLostFound(item: InsertLostFound): Promise<LostFound>;
+  createLostFound(item: InsertLostFound & { attachmentUrl?: string }): Promise<LostFound>;
   updateLostFound(id: string, item: Partial<LostFound>): Promise<LostFound | undefined>;
+  deleteLostFound(id: string): Promise<LostFound | undefined>;
   
   // SOS Alert methods
   getAllSOSAlerts(): Promise<SOSAlert[]>;
@@ -85,26 +88,45 @@ export class MemStorage implements IStorage {
   }
 
   private seedInitialData() {
-    const demoUsers: User[] = [
-      { id: randomUUID(), username: "student123", password: "student123", role: "student", name: "John Doe" },
-      { id: randomUUID(), username: "staff001", password: "staff001", role: "staff", name: "Jane Smith" },
-      { id: randomUUID(), username: "warden001", password: "warden001", role: "warden", name: "Robert Johnson" },
-    ];
+    // Users
+    const student1: User = { id: "user-student-1", username: "student1", email: "student1@test.com", password: "password", role: "student", name: "Alice Johnson" };
+    const student2: User = { id: "user-student-2", username: "student2", email: "student2@test.com", password: "password", role: "student", name: "Bob Williams" };
+    const student3: User = { id: "user-student-3", username: "student3", email: "student3@test.com", password: "password", role: "student", name: "Charlie Brown" };
+    const student4: User = { id: "user-student-4", username: "student4", email: "student4@test.com", password: "password", role: "student", name: "Diana Miller" };
+    const student5: User = { id: "user-student-5", username: "student5", email: "student5@test.com", password: "password", role: "student", name: "Ethan Davis" };
+    const student6: User = { id: "user-student-6", username: "student6", email: "student6@test.com", password: "password", role: "student", name: "Fiona Garcia" };
+    const wardenUser: User = { id: "user-warden-1", username: "warden", email: "warden@test.com", password: "password", role: "warden", name: "Mr. Harrison" };
+    
+    this.users.set(student1.id, student1);
+    this.users.set(student2.id, student2);
+    this.users.set(student3.id, student3);
+    this.users.set(student4.id, student4);
+    this.users.set(student5.id, student5);
+    this.users.set(student6.id, student6);
+    this.users.set(wardenUser.id, wardenUser);
 
-    demoUsers.forEach(user => this.users.set(user.id, user));
+    // Rooms
+    const room101: Room = { id: "room-101", number: "101", floor: 1, capacity: 4, occupied: 2, status: "available" };
+    const room102: Room = { id: "room-102", number: "102", floor: 1, capacity: 4, occupied: 4, status: "full" };
+    const room103: Room = { id: "room-103", number: "103", floor: 1, capacity: 3, occupied: 0, status: "maintenance" };
+    const room201: Room = { id: "room-201", number: "201", floor: 2, capacity: 4, occupied: 1, status: "available" };
+    
+    this.rooms.set(room101.id, room101);
+    this.rooms.set(room102.id, room102);
+    this.rooms.set(room103.id, room103);
+    this.rooms.set(room201.id, room201);
 
-    const demoRooms: Room[] = [
-      { id: randomUUID(), number: "101", floor: 1, capacity: 4, occupied: 2, status: "available" },
-      { id: randomUUID(), number: "102", floor: 1, capacity: 4, occupied: 4, status: "full" },
-      { id: randomUUID(), number: "103", floor: 1, capacity: 3, occupied: 0, status: "maintenance" },
-      { id: randomUUID(), number: "201", floor: 2, capacity: 4, occupied: 3, status: "available" },
-      { id: randomUUID(), number: "202", floor: 2, capacity: 4, occupied: 1, status: "available" },
-      { id: randomUUID(), number: "203", floor: 2, capacity: 2, occupied: 2, status: "full" },
-      { id: randomUUID(), number: "301", floor: 3, capacity: 4, occupied: 1, status: "available" },
-      { id: randomUUID(), number: "302", floor: 3, capacity: 3, occupied: 2, status: "available" },
-    ];
+    // Complaints
+    const complaint1: Complaint = { id: "complaint-1", userId: student1.id, category: "Plumbing", location: "Room 101", description: "Leaky faucet in the bathroom.", status: "pending", priority: "high", roomNumber: "101", attachmentUrl: null, createdAt: new Date("2025-11-12T10:00:00Z"), resolvedAt: null };
+    const complaint2: Complaint = { id: "complaint-2", userId: student3.id, category: "Electrical", location: "Room 102", description: "Wi-Fi is very slow.", status: "resolved", priority: "medium", roomNumber: "102", attachmentUrl: null, createdAt: new Date("2025-11-10T14:30:00Z"), resolvedAt: new Date("2025-11-11T09:00:00Z") };
+    
+    this.complaints.set(complaint1.id, complaint1);
+    this.complaints.set(complaint2.id, complaint2);
 
-    demoRooms.forEach(room => this.rooms.set(room.id, room));
+    // Visitors
+    const visitor1: Visitor = { id: "visitor-1", name: "John Smith", phone: "123-456-7890", purpose: "Family Visit", studentId: student1.id, studentName: "Alice Johnson", roomNumber: "101", checkIn: new Date("2025-11-12T18:00:00Z"), checkOut: null, status: "checked-in" };
+    
+    this.visitors.set(visitor1.id, visitor1);
   }
 
   async getUser(id: string): Promise<User | undefined> {
@@ -117,11 +139,18 @@ export class MemStorage implements IStorage {
     );
   }
 
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    return Array.from(this.users.values()).find(
+      (user) => user.email === email,
+    );
+  }
+
   async createUser(insertUser: InsertUser): Promise<User> {
     const id = randomUUID();
     const user: User = { 
       id, 
       username: insertUser.username, 
+      email: insertUser.email,
       password: insertUser.password,
       role: insertUser.role || "student",
       name: insertUser.name || null,
@@ -130,8 +159,29 @@ export class MemStorage implements IStorage {
     return user;
   }
 
-  async getAllRooms(): Promise<Room[]> {
-    return Array.from(this.rooms.values());
+  async getAllRooms(): Promise<(Room & { students: User[] })[]> {
+    const rooms = Array.from(this.rooms.values());
+    const users = Array.from(this.users.values());
+
+    // This is a simplified way to associate students with rooms for the demo.
+    // A real implementation would have a proper relational mapping.
+    const studentRoomMap: Record<string, string> = {
+      [users[0].id]: rooms[0].id, // Alice -> 101
+      [users[1].id]: rooms[0].id, // Bob -> 101
+      [users[2].id]: rooms[1].id, // Charlie -> 102
+      [users[3].id]: rooms[1].id, // Diana -> 102
+      [users[4].id]: rooms[1].id, // Ethan -> 102
+      [users[5].id]: rooms[1].id, // Fiona -> 102
+    };
+
+    return rooms.map(room => {
+      const studentsInRoom = users.filter(user => studentRoomMap[user.id] === room.id);
+      return {
+        ...room,
+        students: studentsInRoom,
+        occupied: studentsInRoom.length, // Ensure occupied count matches students
+      };
+    });
   }
 
   async getRoom(id: string): Promise<Room | undefined> {
@@ -189,6 +239,8 @@ export class MemStorage implements IStorage {
       priority: insertComplaint.priority || "medium",
       createdAt: new Date(),
       resolvedAt: null,
+      roomNumber: insertComplaint.roomNumber || null,
+      attachmentUrl: insertComplaint.attachmentUrl || null,
     };
     this.complaints.set(id, complaint);
     return complaint;
@@ -205,6 +257,14 @@ export class MemStorage implements IStorage {
     };
     this.complaints.set(id, updatedComplaint);
     return updatedComplaint;
+  }
+
+  async deleteComplaint(id: string): Promise<Complaint | undefined> {
+    const complaint = this.complaints.get(id);
+    if (!complaint) return undefined;
+    
+    this.complaints.delete(id);
+    return complaint;
   }
 
   async getAllMessFeedback(): Promise<MessFeedback[]> {
@@ -299,11 +359,12 @@ export class MemStorage implements IStorage {
     return this.lostFound.get(id);
   }
 
-  async createLostFound(insertItem: InsertLostFound): Promise<LostFound> {
+  async createLostFound(insertItem: InsertLostFound & { attachmentUrl?: string }): Promise<LostFound> {
     const id = randomUUID();
     const item: LostFound = { 
       id, 
       ...insertItem,
+      attachmentUrl: insertItem.attachmentUrl || null,
       createdAt: new Date(),
       resolvedAt: null,
       status: "active",
@@ -323,6 +384,14 @@ export class MemStorage implements IStorage {
     };
     this.lostFound.set(id, updatedItem);
     return updatedItem;
+  }
+
+  async deleteLostFound(id: string): Promise<LostFound | undefined> {
+    const item = this.lostFound.get(id);
+    if (!item) return undefined;
+
+    this.lostFound.delete(id);
+    return item;
   }
 
   async getAllSOSAlerts(): Promise<SOSAlert[]> {

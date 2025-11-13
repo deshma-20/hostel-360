@@ -8,23 +8,37 @@ import {
   insertLostFoundSchema,
   insertSOSAlertSchema,
   insertRoomSchema,
+  insertUserSchema,
 } from "@shared/schema";
 import { fromError } from "zod-validation-error";
+import multer from "multer";
+import path from "path";
+
+const storageConfig = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, 'uploads/');
+  },
+  filename: (req, file, cb) => {
+    cb(null, Date.now() + path.extname(file.originalname));
+  }
+});
+
+const upload = multer({ storage: storageConfig });
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Authentication
   app.post("/api/auth/login", async (req, res) => {
     try {
-      const { username, password } = req.body;
+      const { username, password, role } = req.body;
       
-      if (!username || !password) {
-        return res.status(400).json({ message: "Username and password are required" });
+      if (!username || !password || !role) {
+        return res.status(400).json({ message: "Username, password, and role are required" });
       }
 
       const user = await storage.getUserByUsername(username);
       
-      if (!user || user.password !== password) {
-        return res.status(401).json({ message: "Invalid credentials" });
+      if (!user || user.password !== password || user.role !== role) {
+        return res.status(401).json({ message: "Invalid credentials or role" });
       }
 
       res.json({ 
@@ -35,6 +49,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error) {
       res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  app.post("/api/auth/register", async (req, res) => {
+    try {
+      const parsed = insertUserSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ message: fromError(parsed.error).toString() });
+      }
+
+      const { username, email } = parsed.data;
+
+      const existingUserByUsername = await storage.getUserByUsername(username);
+      if (existingUserByUsername) {
+        return res.status(409).json({ message: "Username already exists" });
+      }
+      
+      const existingUserByEmail = await storage.getUserByEmail(email);
+      if (existingUserByEmail) {
+        return res.status(409).json({ message: "Email already registered" });
+      }
+
+      const newUser = await storage.createUser(parsed.data);
+      res.status(201).json({
+        id: newUser.id,
+        username: newUser.username,
+        role: newUser.role,
+        name: newUser.name,
+      });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to register user" });
     }
   });
 
@@ -132,6 +177,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(complaint);
     } catch (error) {
       res.status(500).json({ message: "Failed to update complaint" });
+    }
+  });
+
+  app.delete("/api/complaints/:id", async (req, res) => {
+    try {
+      const complaint = await storage.deleteComplaint(req.params.id);
+      if (!complaint) {
+        return res.status(404).json({ message: "Complaint not found" });
+      }
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete complaint" });
     }
   });
 
@@ -243,13 +300,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/lost-found", async (req, res) => {
+  app.post("/api/lost-found", upload.single('attachment'), async (req, res) => {
     try {
       const parsed = insertLostFoundSchema.safeParse(req.body);
       if (!parsed.success) {
         return res.status(400).json({ message: fromError(parsed.error).toString() });
       }
-      const item = await storage.createLostFound(parsed.data);
+      
+      let attachmentUrl: string | undefined = undefined;
+      if (req.file) {
+        attachmentUrl = `/uploads/${req.file.filename}`;
+      }
+
+      const item = await storage.createLostFound({ ...parsed.data, attachmentUrl });
       res.status(201).json(item);
     } catch (error) {
       res.status(500).json({ message: "Failed to create lost & found item" });
@@ -265,6 +328,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(item);
     } catch (error) {
       res.status(500).json({ message: "Failed to update item" });
+    }
+  });
+
+  app.delete("/api/lost-found/:id", async (req, res) => {
+    try {
+      const item = await storage.deleteLostFound(req.params.id);
+      if (!item) {
+        return res.status(404).json({ message: "Item not found" });
+      }
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete item" });
     }
   });
 

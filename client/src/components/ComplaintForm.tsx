@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Wrench, Droplet, Zap, Wifi, X } from "lucide-react";
+import { Wrench, Droplet, Zap, Wifi, X, Plus, Upload } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface ComplaintFormProps {
@@ -17,33 +17,39 @@ const categories = [
   { id: "plumbing", label: "Plumbing", icon: Droplet, color: "text-chart-5" },
   { id: "electrical", label: "Electrical", icon: Zap, color: "text-warning" },
   { id: "internet", label: "Internet", icon: Wifi, color: "text-primary" },
+  { id: "other", label: "Other", icon: Plus, color: "text-muted-foreground" },
 ];
 
 export default function ComplaintForm({ onClose, onSubmit }: ComplaintFormProps) {
   const [selectedCategory, setSelectedCategory] = useState("");
   const [description, setDescription] = useState("");
   const [location, setLocation] = useState("");
+  const [roomNumber, setRoomNumber] = useState("");
+  const [file, setFile] = useState<File | null>(null);
   const { toast } = useToast();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!selectedCategory || !description || !location) {
+    const userId = localStorage.getItem('userId');
+    if (!selectedCategory || !description || !location || !userId) {
       toast({
         title: "Error",
-        description: "Please fill all fields",
+        description: "Please fill all required fields.",
         variant: "destructive"
       });
       return;
     }
 
-    onSubmit({
+    const complaintData = {
       category: selectedCategory,
-      description,
-      location,
-      status: "pending",
-      date: "Just now"
-    });
+      description: description,
+      location: location,
+      roomNumber: roomNumber || undefined,
+      userId: userId,
+    };
+
+    onSubmit(complaintData);
 
     toast({
       title: "Success",
@@ -89,15 +95,27 @@ export default function ComplaintForm({ onClose, onSubmit }: ComplaintFormProps)
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="location">Location</Label>
-              <Input
-                id="location"
-                placeholder="e.g., Room 201, Common Room"
-                value={location}
-                onChange={(e) => setLocation(e.target.value)}
-                data-testid="input-location"
-              />
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="location">Location</Label>
+                <Input
+                  id="location"
+                  placeholder="e.g., 2nd Floor"
+                  value={location}
+                  onChange={(e) => setLocation(e.target.value)}
+                  data-testid="input-location"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="roomNumber">Room Number (Optional)</Label>
+                <Input
+                  id="roomNumber"
+                  placeholder="e.g., 201"
+                  value={roomNumber}
+                  onChange={(e) => setRoomNumber(e.target.value)}
+                  data-testid="input-room-number"
+                />
+              </div>
             </div>
 
             <div className="space-y-2">
@@ -110,6 +128,30 @@ export default function ComplaintForm({ onClose, onSubmit }: ComplaintFormProps)
                 data-testid="input-description"
                 rows={4}
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="file-upload">Attach File (Optional)</Label>
+              <div className="flex items-center gap-2">
+                <Input
+                  id="file-upload"
+                  type="file"
+                  onChange={(e) => setFile(e.target.files?.[0] || null)}
+                  className="flex-1"
+                  data-testid="input-file"
+                />
+                {file && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setFile(null)}
+                  >
+                    <X className="w-4 h-4" />
+                  </Button>
+                )}
+              </div>
+              {file && <p className="text-xs text-muted-foreground">Selected: {file.name}</p>}
             </div>
 
             <div className="flex gap-2">

@@ -1,3 +1,4 @@
+/// <reference types="node" />
 import { defineConfig } from "drizzle-kit";
 
 if (!process.env.DATABASE_URL) {

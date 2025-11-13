@@ -1,4 +1,4 @@
-import { Plus, Search, MapPin, Clock, Tag, X } from "lucide-react";
+import { Plus, Search, MapPin, Clock, Tag, X, MoreVertical, Trash2, CheckCircle, Paperclip } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -6,11 +6,25 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useState } from "react";
+import ProfileMenu from "./ProfileMenu";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { LostFound } from "@shared/schema";
-import { formatDistanceToNow } from "date-fns";
+import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 const categories = ["Electronics", "Wallet", "Bottle", "Stationery", "Keys", "Bag", "Others"];
 
@@ -24,6 +38,7 @@ export default function LostAndFound() {
   const [location, setLocation] = useState("");
   const [category, setCategory] = useState("");
   const [contactInfo, setContactInfo] = useState("");
+  const [attachment, setAttachment] = useState<File | null>(null);
   const { toast } = useToast();
   const userId = localStorage.getItem('userId') || '';
   const userName = localStorage.getItem('username') || 'User';
@@ -33,8 +48,16 @@ export default function LostAndFound() {
   });
 
   const createItemMutation = useMutation({
-    mutationFn: async (data: any) => {
-      return await apiRequest("POST", "/api/lost-found", data);
+    mutationFn: async (data: FormData) => {
+      const response = await fetch('/api/lost-found', {
+        method: 'POST',
+        body: data,
+      });
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to create item');
+      }
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/lost-found"] });
@@ -48,12 +71,39 @@ export default function LostAndFound() {
       setLocation("");
       setCategory("");
       setContactInfo("");
+      setAttachment(null);
     },
-    onError: () => {
+    onError: (error: Error) => {
       toast({
         title: "Error",
-        description: "Failed to report item",
+        description: error.message || "Failed to report item",
         variant: "destructive",
+      });
+    },
+  });
+
+  const deleteItemMutation = useMutation({
+    mutationFn: async (id: string) => {
+      return await apiRequest("DELETE", `/api/lost-found/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/lost-found"] });
+      toast({
+        title: "Success",
+        description: "Item deleted successfully",
+      });
+    },
+  });
+
+  const updateStatusMutation = useMutation({
+    mutationFn: async ({ id, status }: { id: string; status: string }) => {
+      return await apiRequest("PATCH", `/api/lost-found/${id}`, { status });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/lost-found"] });
+      toast({
+        title: "Success",
+        description: "Item status updated",
       });
     },
   });
@@ -70,31 +120,40 @@ export default function LostAndFound() {
       return;
     }
 
-    createItemMutation.mutate({
-      type,
-      itemName,
-      description,
-      location,
-      category,
-      reportedBy: userId,
-      reporterName: userName,
-      contactInfo,
-    });
+    const formData = new FormData();
+    formData.append("type", type);
+    formData.append("itemName", itemName);
+    formData.append("description", description);
+    formData.append("location", location);
+    formData.append("category", category);
+    formData.append("reportedBy", userId);
+    formData.append("reporterName", userName);
+    formData.append("contactInfo", contactInfo);
+    if (attachment) {
+      formData.append("attachment", attachment);
+    }
+
+    createItemMutation.mutate(formData);
   };
 
   const filteredItems = items.filter(item => {
     const matchesSearch = item.itemName.toLowerCase().includes(searchQuery.toLowerCase()) || 
                          item.description.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesFilter = filter === "all" || item.type === filter;
-    return matchesSearch && matchesFilter && item.status === "active";
+    return matchesSearch && matchesFilter;
   });
 
   return (
     <div className="min-h-screen bg-background pb-20">
       <header className="bg-gradient-to-r from-primary to-accent text-primary-foreground p-4 sticky top-0 z-30 shadow-lg">
-        <div className="max-w-md mx-auto">
-          <h1 className="text-xl font-bold">Lost & Found</h1>
-          <p className="text-sm opacity-90">Report and find items</p>
+        <div className="flex items-center justify-between max-w-md mx-auto">
+          <div>
+            <h1 className="text-xl font-bold">Lost & Found</h1>
+            <p className="text-sm opacity-90">Report and find items</p>
+          </div>
+          <div>
+            <ProfileMenu />
+          </div>
         </div>
       </header>
 
@@ -254,6 +313,17 @@ export default function LostAndFound() {
                     />
                   </div>
 
+                  <div className="space-y-2">
+                    <Label htmlFor="attachment">Attachment (Photo/Video)</Label>
+                    <Input
+                      id="attachment"
+                      type="file"
+                      accept="image/*,video/*"
+                      onChange={(e) => setAttachment(e.target.files ? e.target.files[0] : null)}
+                      data-testid="input-attachment"
+                    />
+                  </div>
+
                   <div className="flex gap-2">
                     <Button
                       type="button"
@@ -293,7 +363,7 @@ export default function LostAndFound() {
               <Card
                 key={item.id}
                 data-testid={`item-card-${item.id}`}
-                className="hover-elevate active-elevate-2 cursor-pointer overflow-visible"
+                className="overflow-visible"
               >
                 <div className="p-4">
                   <div className="flex items-start justify-between mb-3">
@@ -305,23 +375,89 @@ export default function LostAndFound() {
                         <span>{item.category}</span>
                       </div>
                     </div>
-                    <Badge className={item.type === "lost" ? "bg-destructive/10 text-destructive" : "bg-chart-3/10 text-chart-3"}>
-                      {item.type === "lost" ? "Lost" : "Found"}
-                    </Badge>
+                    <div className="flex items-center gap-2">
+                      <Badge className={item.type === "lost" ? "bg-destructive/10 text-destructive" : "bg-chart-3/10 text-chart-3"}>
+                        {item.type === "lost" ? "Lost" : "Found"}
+                      </Badge>
+                      {item.reportedBy === userId && (
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem
+                              className="text-destructive"
+                              onClick={() => deleteItemMutation.mutate(item.id)}
+                            >
+                              <Trash2 className="w-4 h-4 mr-2" />
+                              Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      )}
+                    </div>
                   </div>
                   
-                  <div className="space-y-1 text-sm text-muted-foreground">
+                  <div className="space-y-1 text-sm text-muted-foreground border-t pt-3 mt-3">
                     <div className="flex items-center gap-2">
                       <MapPin className="w-4 h-4" />
                       <span>{item.location}</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <Clock className="w-4 h-4" />
-                      <span>{formatDistanceToNow(new Date(item.createdAt), { addSuffix: true })}</span>
+                      <span>{format(new Date(item.createdAt), "dd MMM yyyy, hh:mm a")}</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <span className="font-medium">Contact:</span>
                       <span>{item.contactInfo}</span>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-between items-center mt-4">
+                    <div>
+                      {item.attachmentUrl && (
+                        <Dialog>
+                          <DialogTrigger asChild>
+                            <Button variant="link" className="p-0 h-auto text-sm">
+                              <Paperclip className="w-4 h-4 mr-2" />
+                              View Attachment
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent className="max-w-3xl">
+                            <DialogHeader>
+                              <DialogTitle>{item.itemName} Attachment</DialogTitle>
+                            </DialogHeader>
+                            {item.attachmentUrl.match(/\.(jpeg|jpg|gif|png)$/) != null ? (
+                              <img src={item.attachmentUrl} alt={item.itemName} className="max-w-full h-auto rounded-md" />
+                            ) : (
+                              <video src={item.attachmentUrl} controls className="max-w-full h-auto rounded-md" />
+                            )}
+                          </DialogContent>
+                        </Dialog>
+                      )}
+                    </div>
+                    <div className="flex justify-end">
+                      {item.status === 'active' ? (
+                        <Button 
+                          size="sm" 
+                          onClick={() => {
+                            const payload: { id: string; status: string; type?: 'found' } = { id: item.id, status: 'resolved' };
+                            if (item.type === 'lost') {
+                              payload.type = 'found';
+                            }
+                            updateStatusMutation.mutate(payload);
+                          }}
+                        >
+                          <CheckCircle className="w-4 h-4 mr-2" />
+                          Mark as Resolved
+                        </Button>
+                      ) : (
+                        <Badge className="bg-chart-3/10 text-chart-3">
+                          Resolved
+                        </Badge>
+                      )}
                     </div>
                   </div>
                 </div>

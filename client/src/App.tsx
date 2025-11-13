@@ -12,11 +12,14 @@ import MessPage from "@/pages/mess";
 import VisitorsPage from "@/pages/visitors";
 import LostFoundPage from "@/pages/lost-found";
 import AdminPage from "@/pages/admin";
+import RegisterPage from "@/pages/Register";
+import MeetingsPage from "@/pages/meetings";
 
 function Router() {
   return (
     <Switch>
       <Route path="/" component={LoginPage} />
+      <Route path="/register" component={RegisterPage} /> {/* ✅ moved above NotFound */}
       <Route path="/dashboard" component={DashboardPage} />
       <Route path="/rooms" component={RoomsPage} />
       <Route path="/complaints" component={ComplaintsPage} />
@@ -24,7 +27,8 @@ function Router() {
       <Route path="/visitors" component={VisitorsPage} />
       <Route path="/lost-found" component={LostFoundPage} />
       <Route path="/admin" component={AdminPage} />
-      <Route component={NotFound} />
+      <Route path="/meetings" component={MeetingsPage} />
+      <Route component={NotFound} /> {/* ✅ keep this last */}
     </Switch>
   );
 }

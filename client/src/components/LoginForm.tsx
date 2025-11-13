@@ -7,7 +7,7 @@ import { Eye, EyeOff, User, Lock, ArrowLeft } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface LoginFormProps {
-  role: "student" | "staff" | "warden";
+  role: "student" | "warden";
   onLogin: (credentials: { username: string; password: string }) => void;
   onBack: () => void;
 }
@@ -19,12 +19,7 @@ const roleConfig = {
     placeholder: "Enter Student ID",
     demoCredentials: { username: "student123", password: "student123" }
   },
-  staff: {
-    title: "Staff Login",
-    color: "bg-chart-2",
-    placeholder: "Enter Staff ID",
-    demoCredentials: { username: "staff001", password: "staff001" }
-  },
+  // removed staff role — only student and warden supported
   warden: {
     title: "Warden Login",
     color: "bg-chart-3",
@@ -108,7 +103,7 @@ export default function LoginForm({ role, onLogin, onBack }: LoginFormProps) {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover-elevate active-elevate-2 p-1 rounded"
+                  className="absolute inset-y-0 right-0 flex items-center pr-3 text-muted-foreground hover:text-primary"
                   data-testid="button-toggle-password"
                 >
                   {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
@@ -125,14 +120,10 @@ export default function LoginForm({ role, onLogin, onBack }: LoginFormProps) {
               Login
             </Button>
 
-            <div className="bg-muted rounded-md p-3 text-sm">
-              <p className="font-semibold mb-1">Demo Credentials:</p>
-              <p className="text-muted-foreground">
-                Username: <span className="font-mono">{config.demoCredentials.username}</span>
-              </p>
-              <p className="text-muted-foreground">
-                Password: <span className="font-mono">{config.demoCredentials.password}</span>
-              </p>
+            <div className="text-center">
+              <Button variant="link" type="button" onClick={() => window.location.href = '/register'}>
+                Don't have an account? Register
+              </Button>
             </div>
           </form>
         </Card>

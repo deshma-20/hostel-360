@@ -3,6 +3,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
+import ProfileMenu from "./ProfileMenu";
 import VisitorForm from "./VisitorForm";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -22,6 +23,7 @@ export default function VisitorManagement() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/visitors"] });
+      setShowForm(false);
     },
   });
 
@@ -47,9 +49,14 @@ export default function VisitorManagement() {
   return (
     <div className="min-h-screen bg-background pb-20">
       <header className="bg-gradient-to-r from-primary to-accent text-primary-foreground p-4 sticky top-0 z-30 shadow-lg">
-        <div className="max-w-md mx-auto">
-          <h1 className="text-xl font-bold">Visitor Management</h1>
-          <p className="text-sm opacity-90">Register & track visitors</p>
+        <div className="flex items-center justify-between max-w-md mx-auto">
+          <div>
+            <h1 className="text-xl font-bold">Visitor Management</h1>
+            <p className="text-sm opacity-90">Register & track visitors</p>
+          </div>
+          <div>
+            <ProfileMenu />
+          </div>
         </div>
       </header>
 
@@ -116,9 +123,18 @@ export default function VisitorManagement() {
                     </div>
                     <div className="flex items-center gap-2 text-muted-foreground">
                       <Clock className="w-4 h-4" />
-                      <span>In: {formatDistanceToNow(new Date(visitor.checkIn), { addSuffix: true })}</span>
+                      <span className="font-medium">Date:</span>
+                      <span>{new Date(visitor.checkIn).toLocaleDateString('en-GB')}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <Clock className="w-4 h-4" />
+                      <span className="font-medium">Time:</span>
+                      <span>{new Date(visitor.checkIn).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-muted-foreground text-xs">
+                      <span>Checked in {formatDistanceToNow(new Date(visitor.checkIn), { addSuffix: true })}</span>
                       {visitor.checkOut && (
-                        <span>• Out: {formatDistanceToNow(new Date(visitor.checkOut), { addSuffix: true })}</span>
+                        <span>• Out {formatDistanceToNow(new Date(visitor.checkOut), { addSuffix: true })}</span>
                       )}
                     </div>
                   </div>

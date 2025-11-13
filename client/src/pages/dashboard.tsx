@@ -4,11 +4,11 @@ import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 
 export default function DashboardPage() {
-  const [userRole, setUserRole] = useState<"student" | "staff" | "warden">("student");
+  const [userRole, setUserRole] = useState<"student" | "warden">("student");
   const [, navigate] = useLocation();
 
   useEffect(() => {
-    const role = localStorage.getItem('userRole') as "student" | "staff" | "warden" | null;
+    const role = localStorage.getItem('userRole') as "student" | "warden" | null;
     if (!role) {
       navigate('/');
       return;

@@ -1,5 +1,6 @@
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { Card } from "@/components/ui/card";
+import ProfileMenu from "./ProfileMenu";
 import { Users, Bed, MessageSquare, Utensils, Bell } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 
@@ -71,9 +72,14 @@ export default function AdminDashboard() {
   return (
     <div className="min-h-screen bg-background pb-20">
       <header className="bg-gradient-to-r from-primary to-accent text-primary-foreground p-4 sticky top-0 z-30 shadow-lg">
-        <div className="max-w-4xl mx-auto">
-          <h1 className="text-xl font-bold">Admin Dashboard</h1>
-          <p className="text-sm opacity-90">Analytics & Reports</p>
+        <div className="flex items-center justify-between max-w-4xl mx-auto">
+          <div>
+            <h1 className="text-xl font-bold">Admin Dashboard</h1>
+            <p className="text-sm opacity-90">Analytics & Reports</p>
+          </div>
+          <div>
+            <ProfileMenu />
+          </div>
         </div>
       </header>
 
