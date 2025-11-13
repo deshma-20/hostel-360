@@ -127,6 +127,13 @@ export class MemStorage implements IStorage {
     const visitor1: Visitor = { id: "visitor-1", name: "John Smith", phone: "123-456-7890", purpose: "Family Visit", studentId: student1.id, studentName: "Alice Johnson", roomNumber: "101", checkIn: new Date("2025-11-12T18:00:00Z"), checkOut: null, status: "checked-in" };
     
     this.visitors.set(visitor1.id, visitor1);
+
+    // SOS Alerts
+    const sosAlert1: SOSAlert = { id: "sos-1", userId: student2.id, userName: "Bob Williams", roomNumber: "101", location: "Block 1 - Medical Emergency: Severe headache and dizziness", createdAt: new Date("2025-11-13T14:30:00Z"), status: "active", resolvedAt: null };
+    const sosAlert2: SOSAlert = { id: "sos-2", userId: student5.id, userName: "Ethan Davis", roomNumber: "102", location: "Block 2 - Fire Alert: Smoke detected from electrical outlet", createdAt: new Date("2025-11-13T15:45:00Z"), status: "active", resolvedAt: null };
+    
+    this.sosAlerts.set(sosAlert1.id, sosAlert1);
+    this.sosAlerts.set(sosAlert2.id, sosAlert2);
   }
 
   async getUser(id: string): Promise<User | undefined> {

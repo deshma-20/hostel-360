@@ -25,6 +25,7 @@ export default function Dashboard({ userRole = "student" }: DashboardProps) {
   ];
 
   const wardenFeatures = [
+    { icon: Bell, label: "SOS Alerts", color: "text-destructive", path: "/sos-alerts", testId: "feature-sos-alerts" },
     { icon: User, label: "Dashboard", color: "text-primary", path: "/admin", testId: "feature-admin" },
     { icon: DoorOpen, label: "Allocate Rooms", color: "text-primary", path: "/rooms", testId: "feature-room" },
     { icon: PenSquare, label: "Complaints", color: "text-chart-2", path: "/complaints", testId: "feature-complaint" },

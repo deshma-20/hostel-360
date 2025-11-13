@@ -14,6 +14,7 @@ import LostFoundPage from "@/pages/lost-found";
 import AdminPage from "@/pages/admin";
 import RegisterPage from "@/pages/Register";
 import MeetingsPage from "@/pages/meetings";
+import SOSAlertsPage from "@/pages/sos-alerts";
 
 function Router() {
   return (
@@ -28,6 +29,7 @@ function Router() {
       <Route path="/lost-found" component={LostFoundPage} />
       <Route path="/admin" component={AdminPage} />
       <Route path="/meetings" component={MeetingsPage} />
+      <Route path="/sos-alerts" component={SOSAlertsPage} />
       <Route component={NotFound} /> {/* ✅ keep this last */}
     </Switch>
   );
