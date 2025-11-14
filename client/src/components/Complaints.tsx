@@ -9,11 +9,13 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { Complaint } from "@shared/schema";
 import { format } from "date-fns";
+import { useToast } from "@/hooks/use-toast";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 
 const categoryConfig = {
@@ -34,6 +36,9 @@ const statusConfig = {
 export default function Complaints() {
   const [showForm, setShowForm] = useState(false);
   const userId = localStorage.getItem('userId') || '';
+  const userRole = localStorage.getItem('userRole') || '';
+  const isWarden = userRole === 'warden';
+  const { toast } = useToast();
 
   const { data: complaints = [], isLoading } = useQuery<Complaint[]>({
     queryKey: ["/api/complaints"],
@@ -55,6 +60,23 @@ export default function Complaints() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/complaints"] });
+      toast({
+        title: "✅ Complaint Deleted",
+        description: "The complaint has been removed.",
+      });
+    },
+  });
+
+  const updateComplaintStatusMutation = useMutation({
+    mutationFn: async ({ id, status }: { id: string; status: string }) => {
+      return await apiRequest("PATCH", `/api/complaints/${id}`, { status });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/complaints"] });
+      toast({
+        title: "✅ Status Updated",
+        description: "Complaint status has been updated successfully.",
+      });
     },
   });
 
@@ -136,6 +158,29 @@ export default function Complaints() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
+                          {isWarden && (
+                            <>
+                              <DropdownMenuItem
+                                onClick={() => updateComplaintStatusMutation.mutate({ id: complaint.id, status: 'in-progress' })}
+                                disabled={status === 'in-progress'}
+                              >
+                                Mark as In Progress
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => updateComplaintStatusMutation.mutate({ id: complaint.id, status: 'resolved' })}
+                                disabled={status === 'resolved'}
+                              >
+                                Mark as Resolved
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => updateComplaintStatusMutation.mutate({ id: complaint.id, status: 'rejected' })}
+                                disabled={status === 'rejected'}
+                              >
+                                Mark as Rejected
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                            </>
+                          )}
                           <DropdownMenuItem
                             className="text-destructive"
                             onClick={() => deleteComplaintMutation.mutate(complaint.id)}

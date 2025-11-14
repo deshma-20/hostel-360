@@ -10,6 +10,8 @@ export const users = pgTable("users", {
   password: text("password").notNull(),
   role: text("role").notNull().default("student"),
   name: text("name"),
+  resetToken: text("reset_token"),
+  resetTokenExpiry: timestamp("reset_token_expiry"),
 });
 
 export const rooms = pgTable("rooms", {
@@ -86,6 +88,18 @@ export const sosAlerts = pgTable("sos_alerts", {
   resolvedAt: timestamp("resolved_at"),
 });
 
+export const events = pgTable("events", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  date: timestamp("date").notNull(),
+  time: text("time").notNull(),
+  location: text("location").notNull(),
+  purpose: text("purpose").notNull(),
+  createdBy: varchar("created_by").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at"),
+});
+
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
 });
@@ -136,6 +150,14 @@ export const insertSOSAlertSchema = createInsertSchema(sosAlerts).omit({
   resolvedAt: true,
 });
 
+export const insertEventSchema = createInsertSchema(events, {
+  date: z.string().or(z.date()),
+}).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 
@@ -156,3 +178,6 @@ export type LostFound = typeof lostFound.$inferSelect;
 
 export type InsertSOSAlert = z.infer<typeof insertSOSAlertSchema>;
 export type SOSAlert = typeof sosAlerts.$inferSelect;
+
+export type InsertEvent = z.infer<typeof insertEventSchema>;
+export type Event = typeof events.$inferSelect;

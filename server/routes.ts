@@ -1,6 +1,6 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
-import { storage } from "./storage";
+import { storage } from "./db-storage";
 import { 
   insertComplaintSchema,
   insertMessFeedbackSchema,
@@ -9,10 +9,14 @@ import {
   insertSOSAlertSchema,
   insertRoomSchema,
   insertUserSchema,
+  insertEventSchema,
 } from "@shared/schema";
 import { fromError } from "zod-validation-error";
 import multer from "multer";
 import path from "path";
+import bcrypt from "bcrypt";
+import crypto from "crypto";
+import { sendPasswordResetEmail, sendPasswordChangedConfirmation } from "./email";
 
 const storageConfig = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -37,7 +41,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const user = await storage.getUserByUsername(username);
       
-      if (!user || user.password !== password || user.role !== role) {
+      if (!user || user.role !== role) {
+        return res.status(401).json({ message: "Invalid credentials or role" });
+      }
+
+      // Compare hashed password
+      const passwordMatch = await bcrypt.compare(password, user.password);
+      if (!passwordMatch) {
         return res.status(401).json({ message: "Invalid credentials or role" });
       }
 
@@ -59,7 +69,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: fromError(parsed.error).toString() });
       }
 
-      const { username, email } = parsed.data;
+      const { username, email, password } = parsed.data;
 
       const existingUserByUsername = await storage.getUserByUsername(username);
       if (existingUserByUsername) {
@@ -71,7 +81,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(409).json({ message: "Email already registered" });
       }
 
-      const newUser = await storage.createUser(parsed.data);
+      // Hash password before storing
+      const hashedPassword = await bcrypt.hash(password, 10);
+      const userData = {
+        ...parsed.data,
+        password: hashedPassword,
+      };
+
+      const newUser = await storage.createUser(userData);
       res.status(201).json({
         id: newUser.id,
         username: newUser.username,
@@ -80,6 +97,95 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error) {
       res.status(500).json({ message: "Failed to register user" });
+    }
+  });
+
+  // Forgot password - send reset email
+  app.post("/api/auth/forgot-password", async (req, res) => {
+    try {
+      const { email } = req.body;
+
+      if (!email) {
+        return res.status(400).json({ message: "Email is required" });
+      }
+
+      const user = await storage.getUserByEmail(email);
+      
+      // Always return success to prevent email enumeration
+      if (!user) {
+        return res.json({ 
+          message: "If an account with that email exists, a password reset link has been sent." 
+        });
+      }
+
+      // Generate secure random token
+      const resetToken = crypto.randomBytes(32).toString('hex');
+      
+      // Token expires in 1 hour
+      const expiry = new Date(Date.now() + 60 * 60 * 1000);
+
+      // Store token in database
+      await storage.setPasswordResetToken(email, resetToken, expiry);
+
+      // Send email
+      await sendPasswordResetEmail({
+        to: email,
+        resetToken,
+        username: user.username,
+      });
+
+      res.json({ 
+        message: "If an account with that email exists, a password reset link has been sent." 
+      });
+    } catch (error) {
+      console.error("Forgot password error:", error);
+      res.status(500).json({ message: "Failed to process password reset request" });
+    }
+  });
+
+  // Reset password with token
+  app.post("/api/auth/reset-password", async (req, res) => {
+    try {
+      const { token, newPassword } = req.body;
+
+      if (!token || !newPassword) {
+        return res.status(400).json({ message: "Token and new password are required" });
+      }
+
+      if (newPassword.length < 6) {
+        return res.status(400).json({ message: "Password must be at least 6 characters" });
+      }
+
+      // Find user by reset token
+      const user = await storage.getUserByResetToken(token);
+
+      if (!user || !user.resetToken || !user.resetTokenExpiry) {
+        return res.status(400).json({ message: "Invalid or expired reset token" });
+      }
+
+      // Check if token is expired
+      if (new Date() > user.resetTokenExpiry) {
+        return res.status(400).json({ message: "Reset token has expired" });
+      }
+
+      // Hash new password
+      const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+      // Update password
+      await storage.updateUserPassword(user.id, hashedPassword);
+
+      // Clear reset token
+      await storage.clearPasswordResetToken(user.id);
+
+      // Send confirmation email (don't wait for it)
+      sendPasswordChangedConfirmation(user.email, user.username).catch(err => {
+        console.error("Failed to send confirmation email:", err);
+      });
+
+      res.json({ message: "Password reset successful. You can now log in with your new password." });
+    } catch (error) {
+      console.error("Reset password error:", error);
+      res.status(500).json({ message: "Failed to reset password" });
     }
   });
 
@@ -390,6 +496,65 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(alert);
     } catch (error) {
       res.status(500).json({ message: "Failed to update alert" });
+    }
+  });
+
+  // Event routes
+  app.get("/api/events", async (req, res) => {
+    try {
+      const events = await storage.getAllEvents();
+      res.json(events);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch events" });
+    }
+  });
+
+  app.get("/api/events/:id", async (req, res) => {
+    try {
+      const event = await storage.getEvent(req.params.id);
+      if (!event) {
+        return res.status(404).json({ message: "Event not found" });
+      }
+      res.json(event);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch event" });
+    }
+  });
+
+  app.post("/api/events", async (req, res) => {
+    try {
+      const parsed = insertEventSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ message: fromError(parsed.error).toString() });
+      }
+      const event = await storage.createEvent(parsed.data);
+      res.status(201).json(event);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to create event" });
+    }
+  });
+
+  app.patch("/api/events/:id", async (req, res) => {
+    try {
+      const event = await storage.updateEvent(req.params.id, req.body);
+      if (!event) {
+        return res.status(404).json({ message: "Event not found" });
+      }
+      res.json(event);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to update event" });
+    }
+  });
+
+  app.delete("/api/events/:id", async (req, res) => {
+    try {
+      const event = await storage.deleteEvent(req.params.id);
+      if (!event) {
+        return res.status(404).json({ message: "Event not found" });
+      }
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete event" });
     }
   });
 

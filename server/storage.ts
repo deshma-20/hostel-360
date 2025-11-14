@@ -13,8 +13,11 @@ import {
   type InsertLostFound,
   type SOSAlert,
   type InsertSOSAlert,
+  type Event,
+  type InsertEvent,
 } from "@shared/schema";
 import { randomUUID } from "crypto";
+import bcrypt from "bcrypt";
 
 export interface IStorage {
   // User methods
@@ -64,6 +67,13 @@ export interface IStorage {
   getSOSAlert(id: string): Promise<SOSAlert | undefined>;
   createSOSAlert(alert: InsertSOSAlert): Promise<SOSAlert>;
   updateSOSAlert(id: string, alert: Partial<SOSAlert>): Promise<SOSAlert | undefined>;
+  
+  // Event methods
+  getAllEvents(): Promise<Event[]>;
+  getEvent(id: string): Promise<Event | undefined>;
+  createEvent(event: InsertEvent): Promise<Event>;
+  updateEvent(id: string, event: Partial<Event>): Promise<Event | undefined>;
+  deleteEvent(id: string): Promise<Event | undefined>;
 }
 
 export class MemStorage implements IStorage {
@@ -74,6 +84,7 @@ export class MemStorage implements IStorage {
   private visitors: Map<string, Visitor>;
   private lostFound: Map<string, LostFound>;
   private sosAlerts: Map<string, SOSAlert>;
+  private events: Map<string, Event>;
 
   constructor() {
     this.users = new Map();
@@ -83,27 +94,32 @@ export class MemStorage implements IStorage {
     this.visitors = new Map();
     this.lostFound = new Map();
     this.sosAlerts = new Map();
+    this.events = new Map();
     
     this.seedInitialData();
   }
 
   private seedInitialData() {
-    // Users
-    const student1: User = { id: "user-student-1", username: "student1", email: "student1@test.com", password: "password", role: "student", name: "Alice Johnson" };
-    const student2: User = { id: "user-student-2", username: "student2", email: "student2@test.com", password: "password", role: "student", name: "Bob Williams" };
-    const student3: User = { id: "user-student-3", username: "student3", email: "student3@test.com", password: "password", role: "student", name: "Charlie Brown" };
-    const student4: User = { id: "user-student-4", username: "student4", email: "student4@test.com", password: "password", role: "student", name: "Diana Miller" };
-    const student5: User = { id: "user-student-5", username: "student5", email: "student5@test.com", password: "password", role: "student", name: "Ethan Davis" };
-    const student6: User = { id: "user-student-6", username: "student6", email: "student6@test.com", password: "password", role: "student", name: "Fiona Garcia" };
-    const wardenUser: User = { id: "user-warden-1", username: "warden", email: "warden@test.com", password: "password", role: "warden", name: "Mr. Harrison" };
+    // Pre-hashed password for all seed users: "password123"
+    // Generated with: bcrypt.hashSync('password123', 10)
+    const hashedPassword = "$2b$10$V.nqpz8gqrp9WESfuWNb/.LQVsw5hgwcp.grbsI8F7zf.BRndIGuW";
     
-    this.users.set(student1.id, student1);
-    this.users.set(student2.id, student2);
-    this.users.set(student3.id, student3);
-    this.users.set(student4.id, student4);
-    this.users.set(student5.id, student5);
-    this.users.set(student6.id, student6);
-    this.users.set(wardenUser.id, wardenUser);
+    // Users (all passwords: "password123")
+        const student1: User = { id: "user-student-1", username: "student1", email: "student1@test.com", password: hashedPassword, role: "student", name: "Alice Johnson", resetToken: null, resetTokenExpiry: null };
+        const student2: User = { id: "user-student-2", username: "student2", email: "student2@test.com", password: hashedPassword, role: "student", name: "Bob Williams", resetToken: null, resetTokenExpiry: null };
+        const student3: User = { id: "user-student-3", username: "student3", email: "student3@test.com", password: hashedPassword, role: "student", name: "Charlie Brown", resetToken: null, resetTokenExpiry: null };
+        const student4: User = { id: "user-student-4", username: "student4", email: "student4@test.com", password: hashedPassword, role: "student", name: "Diana Miller", resetToken: null, resetTokenExpiry: null };
+        const student5: User = { id: "user-student-5", username: "student5", email: "student5@test.com", password: hashedPassword, role: "student", name: "Ethan Davis", resetToken: null, resetTokenExpiry: null };
+        const student6: User = { id: "user-student-6", username: "student6", email: "student6@test.com", password: hashedPassword, role: "student", name: "Fiona Garcia", resetToken: null, resetTokenExpiry: null };
+        const wardenUser: User = { id: "user-warden-1", username: "warden1", email: "warden@test.com", password: hashedPassword, role: "warden", name: "Mr. Harrison", resetToken: null, resetTokenExpiry: null };
+        
+        this.users.set(student1.id, student1);
+        this.users.set(student2.id, student2);
+        this.users.set(student3.id, student3);
+        this.users.set(student4.id, student4);
+        this.users.set(student5.id, student5);
+        this.users.set(student6.id, student6);
+        this.users.set(wardenUser.id, wardenUser);
 
     // Rooms
     const room101: Room = { id: "room-101", number: "101", floor: 1, capacity: 4, occupied: 2, status: "available" };
@@ -134,6 +150,15 @@ export class MemStorage implements IStorage {
     
     this.sosAlerts.set(sosAlert1.id, sosAlert1);
     this.sosAlerts.set(sosAlert2.id, sosAlert2);
+
+    // Events
+    const event1: Event = { id: "event-1", name: "Monthly Hostel Committee Meeting", date: new Date("2025-11-15T16:00:00Z"), time: "4:00 PM", location: "Common Room", purpose: "Discuss monthly hostel activities and address student concerns", createdBy: wardenUser.id, createdAt: new Date("2025-11-01T10:00:00Z"), updatedAt: null };
+    const event2: Event = { id: "event-2", name: "Mess Menu Discussion", date: new Date("2025-11-20T17:30:00Z"), time: "5:30 PM", location: "Mess Hall", purpose: "Review and plan next month's mess menu with student feedback", createdBy: wardenUser.id, createdAt: new Date("2025-11-01T10:00:00Z"), updatedAt: null };
+    const event3: Event = { id: "event-3", name: "Facilities Review Meeting", date: new Date("2025-11-25T15:00:00Z"), time: "3:00 PM", location: "Warden Office", purpose: "Inspect and review hostel facilities and maintenance needs", createdBy: wardenUser.id, createdAt: new Date("2025-11-01T10:00:00Z"), updatedAt: null };
+    
+    this.events.set(event1.id, event1);
+    this.events.set(event2.id, event2);
+    this.events.set(event3.id, event3);
   }
 
   async getUser(id: string): Promise<User | undefined> {
@@ -161,6 +186,8 @@ export class MemStorage implements IStorage {
       password: insertUser.password,
       role: insertUser.role || "student",
       name: insertUser.name || null,
+      resetToken: null,
+      resetTokenExpiry: null,
     };
     this.users.set(id, user);
     return user;
@@ -444,6 +471,53 @@ export class MemStorage implements IStorage {
     };
     this.sosAlerts.set(id, updatedAlert);
     return updatedAlert;
+  }
+
+  // Event methods
+  async getAllEvents(): Promise<Event[]> {
+    return Array.from(this.events.values()).sort((a, b) => a.date.getTime() - b.date.getTime());
+  }
+
+  async getEvent(id: string): Promise<Event | undefined> {
+    return this.events.get(id);
+  }
+
+  async createEvent(insertEvent: InsertEvent): Promise<Event> {
+    const id = randomUUID();
+    const event: Event = {
+      id,
+      name: insertEvent.name,
+      date: new Date(insertEvent.date),
+      time: insertEvent.time,
+      location: insertEvent.location,
+      purpose: insertEvent.purpose,
+      createdBy: insertEvent.createdBy,
+      createdAt: new Date(),
+      updatedAt: null,
+    };
+    this.events.set(id, event);
+    return event;
+  }
+
+  async updateEvent(id: string, eventUpdate: Partial<Event>): Promise<Event | undefined> {
+    const event = this.events.get(id);
+    if (!event) return undefined;
+
+    const updatedEvent = {
+      ...event,
+      ...eventUpdate,
+      date: eventUpdate.date ? new Date(eventUpdate.date) : event.date,
+      updatedAt: new Date(),
+    };
+    this.events.set(id, updatedEvent);
+    return updatedEvent;
+  }
+
+  async deleteEvent(id: string): Promise<Event | undefined> {
+    const event = this.events.get(id);
+    if (!event) return undefined;
+    this.events.delete(id);
+    return event;
   }
 }
 

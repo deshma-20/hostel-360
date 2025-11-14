@@ -1,8 +1,11 @@
-import { useQuery } from "@tanstack/react-query";
-import { AlertCircle, User, Home, Building, Calendar, Clock } from "lucide-react";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { AlertCircle, User, Home, Building, Calendar, Clock, CheckCircle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 interface SOSAlert {
   id: number;
@@ -15,8 +18,22 @@ interface SOSAlert {
 }
 
 export default function SOSAlerts() {
+  const { toast } = useToast();
   const { data: alerts, isLoading } = useQuery<SOSAlert[]>({
     queryKey: ["/api/sos-alerts"],
+  });
+
+  const resolveAlertMutation = useMutation({
+    mutationFn: async (id: number) => {
+      return await apiRequest("PATCH", `/api/sos-alerts/${id}`, { status: 'resolved' });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/sos-alerts"] });
+      toast({
+        title: "✅ Alert Resolved",
+        description: "The emergency alert has been marked as resolved.",
+      });
+    },
   });
 
   const getEmergencyType = (location: string) => {
@@ -142,6 +159,24 @@ export default function SOSAlerts() {
                       <p className="text-sm font-semibold text-destructive mb-1">Details:</p>
                       <p className="text-sm">{alert.location}</p>
                     </div>
+
+                    {/* Resolve Button */}
+                    {alert.status === 'active' && (
+                      <Button
+                        onClick={() => resolveAlertMutation.mutate(alert.id)}
+                        className="w-full bg-chart-3 hover:bg-chart-3/90"
+                        disabled={resolveAlertMutation.isPending}
+                      >
+                        <CheckCircle className="w-4 h-4 mr-2" />
+                        Mark as Resolved
+                      </Button>
+                    )}
+                    {alert.status === 'resolved' && (
+                      <Badge className="w-full justify-center bg-chart-3/20 text-chart-3 border-chart-3">
+                        <CheckCircle className="w-4 h-4 mr-2" />
+                        Resolved
+                      </Badge>
+                    )}
                   </CardContent>
                 </Card>
               );
