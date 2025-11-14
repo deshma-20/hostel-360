@@ -2,7 +2,8 @@ import { Star, ThumbsUp, ThumbsDown, Trash2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useLocation } from "wouter";
 import ProfileMenu from "./ProfileMenu";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -21,7 +22,19 @@ interface MessFeedback {
 }
 
 export default function MessFeedback() {
+  const [, setLocation] = useLocation();
+  const userId = localStorage.getItem('userId');
   const userRole = localStorage.getItem('userRole') || 'student';
+  
+  useEffect(() => {
+    if (!userId) {
+      setLocation('/login');
+    }
+  }, [userId, setLocation]);
+
+  if (!userId) {
+    return null;
+  }
   
   // If warden, show feedback submissions
   if (userRole === 'warden') {
