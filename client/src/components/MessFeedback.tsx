@@ -50,11 +50,13 @@ function WardenMessView() {
     queryKey: ["/api/mess-feedback"],
   });
 
+  // Normalize meal names to capitalize first letter for grouping
   const groupedByMeal = feedbacks.reduce((acc, feedback) => {
-    if (!acc[feedback.meal]) {
-      acc[feedback.meal] = [];
+    const normalizedMeal = feedback.meal.charAt(0).toUpperCase() + feedback.meal.slice(1).toLowerCase();
+    if (!acc[normalizedMeal]) {
+      acc[normalizedMeal] = [];
     }
-    acc[feedback.meal].push(feedback);
+    acc[normalizedMeal].push(feedback);
     return acc;
   }, {} as Record<string, MessFeedback[]>);
 
