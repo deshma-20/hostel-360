@@ -17,6 +17,7 @@ import MeetingsPage from "@/pages/meetings";
 import SOSAlertsPage from "@/pages/sos-alerts";
 import ForgotPasswordPage from "@/pages/forgot-password";
 import ResetPasswordPage from "@/pages/reset-password";
+import HelpChatbot from "@/components/HelpChatbot";
 
 function Router() {
   return (
@@ -45,6 +46,7 @@ function App() {
       <TooltipProvider>
         <Toaster />
         <Router />
+        <HelpChatbot />
       </TooltipProvider>
     </QueryClientProvider>
   );
